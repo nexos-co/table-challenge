@@ -1,128 +1,103 @@
 import { Injectable, NotFoundException, ConflictException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
-import { CreateUserDto, UpdateUserDto } from 'src/dto/student.dto';
 import { Student, StudentType } from 'src/model/student.model';
 import { v4 as uuidv4 } from 'uuid';
 import { JwtService } from '@nestjs/jwt';
+import { PaginatedResult } from 'src/types';
 @Injectable()
 export class StudentService {
     constructor(
-        @InjectModel(Student.name) private userModel: Model<StudentType>,
+        @InjectModel(Student.name) private studentModel: Model<StudentType>,
         private readonly jwtService: JwtService
-        ) { }
+    ) { }
 
-    async register(user: CreateUserDto): Promise<string> {
-
-        const isBanned = await this.bannedUserModel.findOne({ bannedEmail: user.userEmail }).exec();
-        if (isBanned) {
-            throw new ConflictException(`User with email ${user.userEmail} is banned and cannot register`)
+    async create(student: StudentType): Promise<{ message: string }> {
+        const existingStudent = await this.studentModel.findOne({ email: student.email });
+        if (existingStudent) {
+            throw new ConflictException(`Email ${student.email} already has been registered`);
         }
-
-        const existingUser = await this.userModel.findOne({ userEmail: user.userEmail }).exec();
-        if (existingUser) {
-            throw new ConflictException(`User with email ${user.userEmail} already exists`);
-        }
-
-        const hashedPassword = await this.encryptionService.hashPassword(user.userPassword);
-
-        const createdUser = new this.userModel({
-            ...user,
-            userId: uuidv4(),
-            userPassword: hashedPassword,
-        });
-        const newUser = await createdUser.save();
-        const generatedCode = new this.codeModel({
-            id: newUser.userId,
-            code: Math.floor(100000 + Math.random() * 900000)
+        const newStudent = new Student({
+            ...student,
+            id: uuidv4
         })
 
-        await generatedCode.save();
-        this.emailService.sendEmail(newUser.userEmail, newUser.userId, 'EMAIL_CONFIRMATION', generatedCode.code)
+        const savedStudent = await newStudent.save();
 
-        return newUser.userId;
-    }
-
-    async findAll(): Promise<UserResponseType[]> {
-        return this.userModel.find(
-            {},
-              {
-               _id: 1,
-                userFullName: 1,
-                userId: 1,
-                organizationIds: 1,
-                userEmail: 1,
-               }
-          )
-           .lean()
-           .exec() as Promise<UserResponseType[]>;
-    }
-
-    async findById(userId: string): Promise<UserResponseType> {
-        const user = await this.userModel.findOne({ userId },
-            {
-             _id: 1,
-              userFullName: 1,
-              userId: 1,
-              organizationIds: 1,
-              userEmail: 1,
-             }
-        )
-         .lean()
-         .exec();
-        if (!user) {
-            throw new NotFoundException(`User with ID ${userId} not found`);
-        }
-        return user;
+        return { message: `Student created. ID ${savedStudent.id}}` };
     }
 
 
-    async findByEmail(userEmail: string): Promise<UserResponseType> {
-        const user = await this.userModel.findOne({ userEmail },
-            {
-             _id: 1,
-              userFullName: 1,
-              userId: 1,
-              organizationIds: 1,
-              userEmail: 1,
-             }
-        )
-         .lean()
-         .exec();
-        if (!user) {
-            throw new NotFoundException(`User with email ${userEmail} not found`);
-        }
-        return user;
-    }
+    async getStudents(
+        search: string,
+        page: number,
+        limit: number,
+    ): Promise<PaginatedResult> {
 
-    async update(userId: string, updateUserDto: UpdateUserDto): Promise<UserType> {
-        const user = await this.userModel.findOne({userId});
-        Object.assign(user, updateUserDto);
+        const skip = (page - 1) * limit;
+        const filter: any = {};
 
-        if (updateUserDto.userPassword) {
-            user.userPassword = await this.encryptionService.hashPassword(updateUserDto.userPassword);
+        if (search) {
+            const searchRegex = { $regex: search, $options: 'i' };
+            filter.$or = [
+                { firstName: searchRegex },
+                { lastName: searchRegex },
+                { email: searchRegex },
+                { age: searchRegex },
+                { grade: searchRegex }
+            ];
         }
 
-        return user.save();
-    }
+        const students = await this.studentModel
+            .find(filter)
+            .sort({ createdAt: -1 })
+            .skip(skip)
+            .limit(limit)
+            .exec();
 
-    async deleteUser(userId: string): Promise<{ message: string }> {
-        const user = await this.userModel.findOne({ userId }).exec();
-        if (!user) {
-            throw new NotFoundException('User not found');
+        const total = await this.studentModel.countDocuments(filter).exec();
+
+        if (!students || students.length === 0) {
+            if (Object.keys(filter).length > 0) {
+                throw new NotFoundException(`No students found matching the provided filters.`);
+            } else {
+                throw new NotFoundException(`No students found.`);
+            }
         }
 
-        const bannedUser = new this.bannedUserModel({ bannedEmail: user.userEmail });
-        await bannedUser.save();
+        const nextPage: number | null = (page * limit) < total ? page + 1 : null;
+        const previousPage: number | null = skip > 0 ? page - 1 : null;
 
-        const result = await this.userModel.deleteOne({ userId });
+        const result: PaginatedResult = {
+            students,
+            nextPage,
+            previousPage,
+            total,
+            currentPage: page,
+            pageSize: limit,
+        };
 
-        if (result.deletedCount === 0) throw new Error('User not found');
-
-        return { message: 'User deleted successfully' };
+        return result;
     }
 
+    async remove(id: string): Promise<{ message: string }> {
+        const student = await this.studentModel.deleteOne({ id }).exec();
+        if (student.deletedCount === 0) {
+            throw new NotFoundException(`Student not found`);
+        }
 
 
+        return { message: `Student deleted sucsessfully` };
+    }
+
+    async update(id: string): Promise<{ message: string }> {
+
+        const student = await this.studentModel.updateOne({ id }).exec();
+        if (student.modifiedCount === 0) {
+            throw new ConflictException(`Student not modified`);
+        }
+
+        return { message: `Student updated` }
+    }
 
 }

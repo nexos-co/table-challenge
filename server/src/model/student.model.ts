@@ -1,16 +1,19 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { Document, Types } from 'mongoose';
 
-@Schema()
+@Schema({ timestamps: true })
 export class Student extends Document {
     @Prop({ required: true, unique: true })
-    Id: string;
+    id: string;
 
-    @Prop({ required: true, unique: true })
+    @Prop({ required: true })
     email: string;
 
     @Prop({ required: true })
-    fullName: string;
+    firstName: string;
+
+    @Prop({ required: true })
+    lastName: string;
 
     @Prop({ required: true })
     grade: string
