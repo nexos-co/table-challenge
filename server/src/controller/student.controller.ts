@@ -7,7 +7,7 @@ import { PaginatedResult } from 'src/types';
 export class StudentController {
     constructor(private readonly studentService: StudentService) { }
 
-    @Post('/register')
+    @Post('/')
     async create(@Body() createStudent: StudentType) {
         return this.studentService.create(createStudent);
     }
