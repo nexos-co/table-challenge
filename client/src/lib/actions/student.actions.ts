@@ -1,5 +1,5 @@
 import axios from "axios";
-import { PaginationType } from "../../types";
+import { PaginationType, StudentType } from "../../types";
 
 const serverUrl = process.env.SERVER || "http://localhost:3001";
 console.log(serverUrl)
@@ -26,15 +26,7 @@ export async function getStudents(
     }
 }
 
-export async function createStudent(formData: FormData) {
-    const student = {
-        firstName: formData.get("firstName"),
-        lastName: formData.get("lastName"),
-        email: formData.get("email"),
-        grade: formData.get("grade"),
-        age: formData.get("age"),
-    };
-
+export async function createStudent(student: Partial<StudentType>) {
     try {
         const response = await axios.post(`${serverUrl}/api/students`, { student });
         return response.data;
@@ -52,15 +44,7 @@ export async function deleteStudent(id: string) {
     }
 }
 
-export async function editStudent(formData: FormData, id: string) {
-    const student = {
-        firstName: formData.get("firstName"),
-        lastName: formData.get("lastName"),
-        email: formData.get("email"),
-        grade: formData.get("grade"),
-        age: formData.get("age")
-    };
-
+export async function editStudent(student: Partial<StudentType>, id: string) {
     try {
         const response = await axios.put(`${serverUrl}/api/students/${id}`, { student });
         return response.data;

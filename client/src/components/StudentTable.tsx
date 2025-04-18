@@ -1,60 +1,76 @@
-import {
-    Table,
-    TableBody,
-    TableCaption,
-    TableCell,
-    TableHead,
-    TableHeader,
-    TableRow,
-} from "src/components/ui/table";
-import {
-    Card,
-    CardHeader,
-    Input,
-    Typography,
-    Button,
-    CardBody,
-    Chip,
-    CardFooter,
-    Tabs,
-    TabsHeader,
-    Tab,
-    Avatar,
-    IconButton,
-    Tooltip,
-} from "@material-tailwind/react";
-import {
-    Download,
-    PenLine,
-    Search,
-    Trash,
-    UserRound,
-    UserRoundPen,
-} from "lucide-react";
+import { UserRound } from "lucide-react";
+import { useEffect, useState } from "react";
+import { PaginationType, StudentType } from "src/types";
+import Pagination from "./Pagination";
+import { getStudents } from "../lib/actions/student.actions";
+import Header from "./Header";
+import { tableHead } from "../constants";
+import ActionButton from "./ActionButton";
+import NotFound from "./NotFound";
 
 const StudentTable = () => {
-    return (
-        <Table>
-            <TableCaption> List of Students</TableCaption>
-            <TableHeader>
-                <TableRow>
-                    <TableHead className="w-[100px]">Students</TableHead>
-                    <TableHead>Age</TableHead>
-                    <TableHead>Grade</TableHead>
-                    <TableHead className="text-right"> </TableHead>
-                </TableRow>
-            </TableHeader>
-            <TableBody>
-                <TableRow>
-                    <TableCell className="font-medium">INV001</TableCell>
-                    <TableCell>Paid</TableCell>
-                    <TableCell>Credit Card</TableCell>
-                    <TableCell className="text-right">$250.00</TableCell>
-                </TableRow>
-            </TableBody>
-        </Table>
+    const [searchParam, setSearchParam] = useState("");
+    const [currentPage, setCurrentPage] = useState(1);
+    const [stateData, setStateData] = useState<PaginationType>();
+    const [selectedStudents, setSelectedStudents] = useState<StudentType[]>([]);
 
-    )
+    useEffect(() => {
+        setSelectedStudents([]);
+        getStudents(currentPage, searchParam)
+            .then((data) => {
+                setSelectedStudents(data.students);
+                setStateData(data);
+            })
+            .catch((e) => console.log(e))
+    })
+
+    function StatusComponents() {
+        if (selectedStudents.length === 0) return <NotFound />;
+        else return <></>;
+    }
+
+
+    return (
+        <section className="container">
+            <Header searchParam={searchParam} setSearchParam={setSearchParam} />
+            <StatusComponents />
+            <table>
+                <thead>
+                    <tr>
+                        {selectedStudents.length > 0 &&
+                            tableHead.map((headItem) => <th key={headItem}> {headItem} </th>)}
+                    </tr>
+                </thead>
+
+                <tbody>
+                    {selectedStudents.map((student, idx) => (
+                        <tr key={student.firstName + idx}>
+                            <td>
+                                <UserRound />
+                            </td>
+                            <td>
+                                {student.firstName} {student.lastName}{" "}
+                                {student.email}
+                            </td>
+                            <td> {student.grade} </td>
+                            <td> {student.age} y/o</td>
+                            <ActionButton student={student}
+                            />
+                        </tr>
+                    ))}
+                </tbody>
+            </table>
+
+            <Pagination
+                currentPage={stateData?.currentPage}
+                pageSize={stateData?.pageSize}
+                nextPage={stateData?.nextPage}
+                previousPage={stateData?.previousPage}
+                totalItems={stateData?.total}
+                setCurrentPage={setCurrentPage}
+            />
+        </section>
+    );
 
 
 }
