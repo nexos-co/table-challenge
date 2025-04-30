@@ -16,5 +16,4 @@ export {
     Header,
     DeleteModal,
     StudentForm
-
 }

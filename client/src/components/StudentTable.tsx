@@ -1,13 +1,11 @@
 import { UserRound } from "lucide-react";
 import { useEffect, useState } from "react";
-import { PaginationType, StudentType } from "src/types";
+import { PaginationType, StudentType } from "../types";
 import Pagination from "./Pagination";
 import { getStudents } from "../lib/actions/student.actions";
 import Header from "./Header";
 import { tableHead } from "../constants";
 import ActionButton from "./ActionButton";
-import NotFound from "./NotFound";
-
 const StudentTable = () => {
     const [searchParam, setSearchParam] = useState("");
     const [currentPage, setCurrentPage] = useState(1);
@@ -22,18 +20,12 @@ const StudentTable = () => {
                 setStateData(data);
             })
             .catch((e) => console.log(e))
-    })
-
-    function StatusComponents() {
-        if (selectedStudents.length === 0) return <NotFound />;
-        else return <></>;
-    }
+    }, [])
 
 
     return (
         <section className="container">
             <Header searchParam={searchParam} setSearchParam={setSearchParam} />
-            <StatusComponents />
             <table>
                 <thead>
                     <tr>

@@ -3,7 +3,7 @@ import {
   Dialog,
   DialogTitle,
   DialogContent,
-} from 'src/components/ui/dialog'
+} from './ui/dialog'
 import {
   Form,
   FormControl,
@@ -11,9 +11,9 @@ import {
   FormItem,
   FormLabel,
   FormMessage,
-} from "src/components/ui/form"
-import { Button } from "src/components/ui/button"
-import { Input } from "src/components/ui/input"
+} from "./ui/form"
+import { Button } from "./ui/button"
+import { Input } from "./ui/input"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { useForm } from "react-hook-form"
 import { z } from "zod"
